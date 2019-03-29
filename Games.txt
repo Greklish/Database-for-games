@@ -1,0 +1,119 @@
+CREATE DATABASE Games;
+
+-- Tables
+CREATE TABLE Categori(
+  CategoriId INT NOT NULL AUTO_INCREMENT,
+  CategoriName VARCHAR (50),
+  PRIMARY KEY (CategoriId)
+);
+
+CREATE TABLE Platform(
+  PlatformId INT NOT NULL AUTO_INCREMENT,
+  PlatformName VARCHAR(50),
+  PRIMARY KEY (PlatformId)
+);
+
+CREATE TABLE Game(
+  GameId INT NOT NULL AUTO_INCREMENT,
+  GameCategoriId INT,
+  GamePlatformId INT,
+  GameTitle VARCHAR(50),
+  GamePrice INT,
+  PRIMARY KEY (GameId),
+  FOREIGN KEY (GameCategoriId) REFERENCES Categori(CategoriId),
+  FOREIGN KEY (GamePlatformId) REFERENCES Platform(PlatformId)
+);
+
+CREATE TABLE Customer(
+  CustomerId Int NOT NULL AUTO_INCREMENT,
+  CustomerName VARCHAR(50),
+  PRIMARY KEY (CustomerId)
+);
+
+CREATE TABLE CustomerOrders(
+  CustomerOrderId INT NOT NULL AUTO_INCREMENT,
+  CustomerOrderCid INT,
+  CustomerOrderGid INT,
+  PRIMARY KEY (CustomerOrderId),
+  FOREIGN KEY (CustomerOrderCid) REFERENCES Customer(CustomerId),
+  FOREIGN KEY (CustomerOrderGid) REFERENCES Game(GameId)
+);
+-- putting values into database
+INSERT INTO Categori(CategoriId, CategoriName)
+VALUE (1,'Shooter'),(2,'Hack n slash'),(3,'MMORPG'),(4,'Fighting');
+
+INSERT INTO Platform(Platformid, PlatformName)
+VALUE (1, 'PC'),(2, 'PS4'),(3, 'Xbox One'),(4, 'Nintendo Switch');
+
+INSERT INTO Game(GameId, GameCategoriId, GamePlatformId, GameTitle, GamePrice)
+VALUE (123,4,4,'Dragon Ball FighterZ',500),(456,3,1,'World Of Warcraft',300),(789,2,2,'Devil May Cry',350),(987,1,3,'Call Of Duty Black Ops 4',200);
+
+INSERT INTO Customer(CustomerId, CustomerName)
+VALUE (125,'Simon'), (234,'Leia'), (432,'Anders');
+
+INSERT INTO CustomerOrders (CustomerOrderCid, CustomerOrderGid)
+VALUES(125,789),(234,456), (432,987),(125,456),(125,987);
+
+-- all games
+SELECT * FROM Categori INNER JOIN Game ON Categori.CategoriId = Game.GameCategoriId;
+
+-- only 'Shooter' games
+SELECT * FROM Categori INNER JOIN Game ON Categori.CategoriId = Game.GameCategoriId WHERE Categori.CategoriName = 'Shooter';
+
+-- switch name for World Of Warcraft
+UPDATE Game
+SET GameTitle='WOW'
+WHERE GameId=456;
+
+-- Delete Dragon ball
+DELETE FROM Game
+WHERE GameId=123;
+
+-- view 2 game prices from highest to lowest
+CREATE VIEW highPrice AS
+SELECT * FROM Game ORDER BY GamePrice DESC LIMIT 2;
+
+-- orders customers by id
+SELECT * FROM Customer ORDER BY CustomerId ASC;
+
+-- avarage game price
+SELECT AVG(GamePrice) FROM Game;
+
+SELECT GameCategoriId, COUNT(*) AS Game_count FROM Categori INNER JOIN Game GROUP BY GamePrice;
+
+-- Procedure that shows all Games with Categories->Platform->Price
+DELIMITER //
+ CREATE PROCEDURE GetGames()
+   BEGIN
+    SELECT Game.GameTitle, Categori.CategoriName, Platform.PlatformName, Game.GamePrice
+    FROM Categori INNER JOIN Game ON
+    Categori.CategoriId = Game.GameCategoriId
+    INNER JOIN Platform
+    ON Platform.PlatformId = Game.GamePlatformId
+    ORDER BY GameTitle ASC;
+   END //
+ DELIMITER ;
+-- calling procedure
+CALL GetGames();
+
+-- a procedure with in parameters, shows customers games
+DELIMITER //
+ CREATE PROCEDURE CustomerOrdersName(IN customer VARCHAR(50))
+  BEGIN
+    SELECT Customer.CustomerName, CustomerOrders.CustomerOrderGid, Game.GameTitle
+  FROM Customer INNER JOIN CustomerOrders ON
+  Customer.CustomerId = CustomerOrders.CustomerOrderCid
+  INNER JOIN Game
+  ON Game.GameId = CustomerOrders.CustomerOrderGid
+  WHERE CustomerName = customer;
+  END //
+ DELIMITER ;
+-- calling procedure, serching for specifik customer named 'Simon'
+call CustomerOrdersName('Simon');
+
+-- Index
+CREATE INDEX index_Game
+ON Game(GameTitle, GamePrice);
+
+CREATE INDEX index_customer
+ON Customer(CustomerId, CustomerName);
